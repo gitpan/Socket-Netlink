@@ -1,0 +1,39 @@
+---
+abstract: "interface to Linux's C<PF_NETLINK> socket family"
+author:
+  - 'Paul Evans <leonerd@leonerd.org.uk>'
+build_requires:
+  ExtUtils::CBuilder: 0
+  ExtUtils::CChecker: 0.02
+  ExtUtils::H2PM: 0.03
+  Module::Build: 0
+  Module::Build::Compat: 0
+  Test::HexString: 0
+  Test::More: 0
+configure_requires:
+  Module::Build: 0
+  Module::Build::Compat: 0
+generated_by: 'Module::Build version 0.3601'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Socket-Netlink
+provides:
+  IO::Socket::Netlink:
+    file: lib/IO/Socket/Netlink.pm
+    version: 0.01
+  IO::Socket::Netlink::Generic:
+    file: lib/IO/Socket/Netlink/Generic.pm
+    version: 0.01
+  Socket::Netlink:
+    file: lib/Socket/Netlink.pm
+    version: 0.01
+  Socket::Netlink::Generic:
+    file: lib/Socket/Netlink/Generic.pm
+    version: 0.01
+requires:
+  Sub::Name: 0
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.01

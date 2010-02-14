@@ -43,11 +43,11 @@ my $build = $cc->new_module_build(
       'Sub::Name' => 0,
    },
    configure_requires => {
+      'ExtUtils::CChecker' => '0.02',
       'Module::Build' => 0,
       'Module::Build::Compat' => 0,
    },
    build_requires => {
-      'ExtUtils::CChecker' => '0.02',
       'ExtUtils::H2PM' => '0.03',
       'Module::Build' => 0,
       'Module::Build::Compat' => 0,

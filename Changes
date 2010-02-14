@@ -1,4 +1,11 @@
 Revision history for Socket-Netlink
 
+0.02    CHANGES:
+         * Improved NLMSG_ERROR handling semantics
+         * Don't cache NETLINK_GENERIC familyname => id mapping
+
+        BUGFIXES:
+         * Declare ExtUtils::CChecker as a configure_requires
+
 0.01    First version, released on an unsuspecting world.
 

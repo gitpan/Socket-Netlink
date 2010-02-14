@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( IO::Socket );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Carp;
 
@@ -230,6 +230,11 @@ successfully.
 Sometimes the kernel will respond multiple messages in reply to just one. If
 this may be the case, see instead C<recv_nlmsgs>.
 
+This method returns success or failure depending only on the result of the
+underlying socket C<recv> call. If a message was successfully received it
+returns true, even if that message contains an error. To detect the error, see
+the C<nlerr_error> accessor.
+
 =cut
 
 sub recv_nlmsg
@@ -248,11 +253,6 @@ sub recv_nlmsg
       # Ignore NLMSG_NOOP and try again
    } while( $_[0]->nlmsg_type == NLMSG_NOOP );
 
-   if( $_[0]->nlmsg_type == NLMSG_ERROR ) {
-      $! = $_[0]->nlerr_error;
-      return undef;
-   }
-
    return $ret;
 }
 
@@ -264,8 +264,11 @@ C<NLMSG_DONE> which indicates the end of the list. Each message is pushed
 into the C<@messages> array (which is I<not> cleared initially), excluding
 the final C<NLMSG_DONE>.
 
-This may require more than one C<recv()> call to the kernel. If any of these
-calls fail then all the messages will be discarded.
+This method returns success or failure depending only on the result of the
+underlying socket C<recv> call or calls. If any calls fails then the method
+will return false. If messages were successfully received it returns true,
+even if a message contains an error. To detect the error, see the
+C<nlerr_error> accessor.
 
 =cut
 
@@ -283,11 +286,6 @@ sub recv_nlmsgs
       $message = $self->unpack_message( $buffer );
       # Ignore NLMSG_NOOP and try again
    } while( $message->nlmsg_type == NLMSG_NOOP );
-
-   if( $message->nlmsg_type == NLMSG_ERROR ) {
-      $! = $message->nlerr_error;
-      return undef;
-   }
 
    push @$msgs, $message;
    return scalar @$msgs unless $message->nlmsg_flags & NLM_F_MULTI;
@@ -433,6 +431,8 @@ __PACKAGE__->is_header(
       [ nlmsg       => "bytes" ],
    ],
 );
+
+sub nlerr_error { 0 }
 
 =head2 $messageclass->is_header( %args )
 
@@ -852,7 +852,11 @@ object will be reblessed into a subclass that encapsulates the error message.
 =head2 $message->nlerr_error
 
 Accessor for the error value from the kernel. This will be a system error
-value such used by C<$!>.
+value such used by C<$!>. This accessor also exists on non-error messages, but
+returns false. This makes it easy to test for an error after C<recv_nlmsg>:
+
+ $sock->recv_nlmsg( my $message, 2**15 ) or die "Cannot recv - $!";
+ ( $! = $message->nlerr_error ) and die "Received NLMSG_ERROR - $!";
 
 =head2 $message->nlerr_msg
 

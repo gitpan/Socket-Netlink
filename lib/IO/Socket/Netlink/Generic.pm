@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( IO::Socket::Netlink );
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Carp;
 
@@ -69,8 +69,6 @@ sub new
    $class->SUPER::new( Protocol => NETLINK_GENERIC, @_ );
 }
 
-my %pkg2id;
-
 sub configure
 {
    my $self = shift;
@@ -83,11 +81,10 @@ sub configure
       defined( my $family_name = $pkg2familyname{$class} ) or
          croak "No family name defined for $class";
 
-      if( !defined $pkg2id{$class} ) {
-         my $family_id = $self->get_family_by_name( $family_name )->{id};
-         $pkg2id{$class} = $family_id;
-         $class->message_class->register_type( $family_id );
-      }
+      my $family_id = $self->get_family_by_name( $family_name )->{id};
+      $class->message_class->register_type( $family_id );
+
+      ${*$self}{default_nlmsg_type} = $family_id;
    }
 
    return $ret;
@@ -96,10 +93,9 @@ sub configure
 sub new_message
 {
    my $self = shift;
-   my $class = ref $self || $self;
 
    $self->SUPER::new_message(
-      ( $class ne __PACKAGE__ && defined $pkg2id{$class} ? ( nlmsg_type => $pkg2id{$class} ) : () ),
+      ( defined ${*$self}{default_nlmsg_type} ? ( nlmsg_type => ${*$self}{default_nlmsg_type} ) : () ),
       @_,
    );
 }

@@ -1,5 +1,9 @@
 Revision history for Socket-Netlink
 
+0.03    CHANGES:
+         * Added accessors for finer access of individual netlink attribute
+           values in messages
+
 0.02    CHANGES:
          * Improved NLMSG_ERROR handling semantics
          * Don't cache NETLINK_GENERIC familyname => id mapping

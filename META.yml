@@ -22,18 +22,18 @@ name: Socket-Netlink
 provides:
   IO::Socket::Netlink:
     file: lib/IO/Socket/Netlink.pm
-    version: 0.02
+    version: 0.03
   IO::Socket::Netlink::Generic:
     file: lib/IO/Socket/Netlink/Generic.pm
-    version: 0.02
+    version: 0.03
   Socket::Netlink:
     file: lib/Socket/Netlink.pm
-    version: 0.02
+    version: 0.03
   Socket::Netlink::Generic:
     file: lib/Socket/Netlink/Generic.pm
-    version: 0.02
+    version: 0.03
 requires:
   Sub::Name: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.02
+version: 0.03

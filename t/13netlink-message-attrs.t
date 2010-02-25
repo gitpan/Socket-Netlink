@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 11;
+use Test::More tests => 14;
 use Test::HexString;
 
 # We'll be testing a lot using packed binary strings. Endian matters
@@ -105,3 +105,30 @@ is_deeply( $message->nlattrs,
       nest  => { byte => 21 },
    },
    '$message->attrs after unpack' );
+
+is( $message->get_nlattr( "short" ), 89, '$message->get_nlattr' );
+
+$message->change_nlattrs( long => 4321, str => "ZYX" );
+
+is_deeply( $message->nlattrs,
+   {
+      byte  => 7,
+      short => 89,
+      long  => 4321,
+      str   => "ZYX",
+      raw   => "X\0Y\0Z\0",
+      nest  => { byte => 21 },
+   },
+   '$message->attrs after change_nlattrs' );
+
+$message->change_nlattrs( short => undef );
+
+is_deeply( $message->nlattrs,
+   {
+      byte  => 7,
+      long  => 4321,
+      str   => "ZYX",
+      raw   => "X\0Y\0Z\0",
+      nest  => { byte => 21 },
+   },
+   '$message->attrs after change_nlattrs to delete' );

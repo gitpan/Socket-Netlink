@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( IO::Socket );
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use Carp;
 
@@ -737,7 +737,6 @@ sub _unpack_nlattrs
 sub nlattrs
 {
    my $self = shift;
-   my $class = ref $self;
 
    if( @_ ) {
       $self->nlattrdata( $self->_pack_nlattrs( @_ ) );
@@ -745,6 +744,77 @@ sub nlattrs
    else {
       return $self->_unpack_nlattrs( $self->nlattrdata );
    }
+}
+
+=head2 $value = $message->get_nlattr( $name )
+
+Returns the decoded value of a single attribute from the message body field.
+Similar to
+
+ $value = $message->nlattrs->{$name}
+
+except it does not incur the extra cost of decoding the other attribute values
+that remain unused.
+
+=cut
+
+sub get_nlattr
+{
+   my $self = shift;
+   my $class = ref $self;
+   my ( $wantname ) = @_;
+
+   my $attrmap = $attr_bytype{$class} or
+      croak "No attribute definitions for $class have been declared";
+
+   my %attrs = unpack_nlattrs( $self->nlattrdata );
+
+   foreach my $typeid ( keys %attrs ) {
+      $attrmap->{$typeid} or next;
+      my ( $name, $unpacker ) = @{ $attrmap->{$typeid} };
+      return $unpacker->( $self, $attrs{$typeid} ) if $name eq $wantname;
+   }
+
+   return undef;
+}
+
+=head2 $message->change_nlattrs( %newvalues )
+
+Changes the stored values of the given attributes in the message body field.
+Similar to
+
+ $message->nlattrs( { %{ $message->nlattrs }, %newvalues } );
+
+except it does not incur the extra cost of decoding and reencoding the
+unmodified attribute values.
+
+A value of C<undef> may be assigned to delete an attribute.
+
+=cut
+
+sub change_nlattrs
+{
+   my $self = shift;
+   my $class = ref $self;
+   my %newvalues = @_;
+
+   my $attrmap = $attr_byname{$class} or
+      croak "No attribute definitions for $class have been declared";
+
+   my %attrs = unpack_nlattrs( $self->nlattrdata );
+
+   foreach my $name ( keys %newvalues ) {
+      $attrmap->{$name} or croak "Unknown netlink message attribute $name";
+      my ( $typeid, $packer ) = @{ $attrmap->{$name} };
+      if( defined( my $value = $newvalues{$name} ) ) {
+         $attrs{$typeid} = $packer->( $self, $newvalues{$name} );
+      }
+      else {
+         delete $attrs{$typeid};
+      }
+   }
+
+   $self->nlattrdata( pack_nlattrs( %attrs ) );
 }
 
 =pod

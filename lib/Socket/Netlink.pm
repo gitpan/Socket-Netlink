@@ -10,7 +10,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Exporter 'import';
 our @EXPORT_OK = qw(
@@ -145,11 +145,6 @@ returned into hashes.
 
 =cut
 
-# Keep perl happy; keep Britain tidy
-1;
-
-__END__
-
 =head1 SEE ALSO
 
 =over 4
@@ -167,3 +162,7 @@ L<IO::Socket::Netlink> - Object interface to C<AF_NETLINK> domain sockets
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
+
+=cut
+
+0x55AA;

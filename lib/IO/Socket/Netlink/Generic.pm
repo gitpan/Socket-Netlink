@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2011 -- leonerd@leonerd.org.uk
 
 package IO::Socket::Netlink::Generic;
 
@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( IO::Socket::Netlink );
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Carp;
 
@@ -82,7 +82,7 @@ sub configure
          croak "No family name defined for $class";
 
       my $family_id = $self->get_family_by_name( $family_name )->{id};
-      $class->message_class->register_type( $family_id );
+      $class->message_class->register_nlmsg_type( $family_id );
 
       ${*$self}{default_nlmsg_type} = $family_id;
    }
@@ -95,6 +95,16 @@ sub new_message
    my $self = shift;
 
    $self->SUPER::new_message(
+      ( defined ${*$self}{default_nlmsg_type} ? ( nlmsg_type => ${*$self}{default_nlmsg_type} ) : () ),
+      @_,
+   );
+}
+
+sub new_command
+{
+   my $self = shift;
+
+   $self->SUPER::new_command(
       ( defined ${*$self}{default_nlmsg_type} ? ( nlmsg_type => ${*$self}{default_nlmsg_type} ) : () ),
       @_,
    );
@@ -194,28 +204,9 @@ message objects:
 
 =cut
 
-my %type2class;
+__PACKAGE__->is_subclassed_by_type;
 
-sub register_type
-{
-   my ( $class, $type ) = @_;
-   $type2class{$type} = $class;
-}
-
-__PACKAGE__->register_type( NETLINK_GENERIC );
-
-sub nlmsg_type
-{
-   my $self = shift;
-   my $nlmsg_type = $self->SUPER::nlmsg_type( @_ );
-
-   if( @_ and defined $nlmsg_type and my $class = $type2class{$nlmsg_type} ) {
-      # Rebless upwards to more specific subclass for this message type
-      bless $self, $class;
-   }
-
-   return $nlmsg_type;
-}
+__PACKAGE__->register_nlmsg_type( NETLINK_GENERIC );
 
 =over 8
 
@@ -267,11 +258,6 @@ __PACKAGE__->has_nlattrs(
    maxattr => [ CTRL_ATTR_MAXATTR,     "u32" ],
 );
 
-# Keep perl happy; keep Britain tidy
-1;
-
-__END__
-
 =head1 SEE ALSO
 
 =over 4
@@ -290,3 +276,7 @@ L<IO::Socket::Netlink> - Object interface to C<AF_NETLINK> domain sockets
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
+
+=cut
+
+0x55AA;

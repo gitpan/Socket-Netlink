@@ -1,14 +1,14 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2011 -- leonerd@leonerd.org.uk
 
 package Socket::Netlink::Generic;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Exporter 'import';
 
@@ -57,26 +57,30 @@ instead; see L<IO::Socket::Netlink::Generic>.
 
 The following sets of constants are exported:
 
+The netlink protocol constant:
+
  NETLINK_GENERIC
 
-The netlink protocol constant
+Control commands:
 
  CTRL_CMD_NEWFAMILY    CTRL_CMD_DELFAMILY    CTRL_CMD_GETFAMILY
  CTRL_CMD_NEWOPS       CTRL_CMD_DELOPS       CTRL_CMD_GETOPS
  CTRL_CMD_NEWMCAST_GRP CTRL_CMD_DELMCAST_GRP CTRL_CMD_GETMCAST_GRP
 
-Control commands
+Attribute IDs:
 
  CTRL_ATTR_FAMILY_ID    CTRL_ATTR_FAMILY_NAME CTRL_ATTR_VERSION
  CTRL_ATTR_HDRSIZE      CTRL_ATTR_MAXATTR     CTRL_ATTR_OPS
  CTRL_ATTR_MCAST_GROUPS
 
-Attribute IDs
+Nested attribute IDs:
 
  CTRL_ATTR_OP_ID CTRL_ATTR_OP_FLAGS
  CTRL_ATTR_MCAST_GRP_NAME CTRL_ATTR_MCAST_GRP_ID
 
-Nested attribute IDs
+Note that if the kernel headers are particularly old, not all of these
+constants may be available. If they are unavailable at compile time, no
+constant functions will be generated.
 
 =cut
 
@@ -89,11 +93,6 @@ Nested attribute IDs
 Pack or unpack a C<struct genlmsghdr> and its payload body.
 
 =cut
-
-# Keep perl happy; keep Britain tidy
-1;
-
-__END__
 
 =head1 SEE ALSO
 
@@ -113,3 +112,7 @@ netlink protocol sockets
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
+
+=cut
+
+0x55AA;

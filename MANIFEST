@@ -9,6 +9,7 @@ lib/Socket/Netlink/Generic_const.pm.PL
 LICENSE
 Makefile.PL
 MANIFEST			This list of files
+META.json
 META.yml
 README
 t/00use.t
@@ -19,5 +20,6 @@ t/11netlink-message.t
 t/12netlink-message-header.t
 t/13netlink-message-attrs.t
 t/14netlink-message-error.t
+t/15netlink-message-typesubclass.t
 t/20io-socket-netlink-generic.t
 t/99pod.t

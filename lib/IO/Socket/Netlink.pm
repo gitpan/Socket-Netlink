@@ -1,7 +1,7 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2010 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2010-2011 -- leonerd@leonerd.org.uk
 
 package IO::Socket::Netlink;
 
@@ -9,7 +9,7 @@ use strict;
 use warnings;
 use base qw( IO::Socket );
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Carp;
 
@@ -26,7 +26,7 @@ __PACKAGE__->register_domain( AF_NETLINK );
 
 =head1 NAME
 
-C<IO::Socket::Netlink> - Object interface to C<AF_NETLINK> domain sockets
+C<IO::Socket::Netlink> - Object interface to C<PF_NETLINK> domain sockets
 
 =head1 SYNOPSIS
 
@@ -167,6 +167,12 @@ sub message_class
    return "IO::Socket::Netlink::_Message";
 }
 
+# And possibly this
+sub command_class
+{
+   return shift->message_class;
+}
+
 =head2 $msg = $sock->new_message( %args )
 
 Returns a new message object containing the given arguments. The named
@@ -174,7 +180,7 @@ arguments are in fact read as an list of key/value pairs, not a hash, so order
 is significant. The basic C<nlmsg_*> keys should come first, followed by any
 required by the inner level header.
 
-For more detail, see the C<MESSAGE OBJECTS> section below.
+For more detail, see the L</MESSAGE OBJECTS> section below.
 
 =cut
 
@@ -195,6 +201,23 @@ sub new_request
 {
    my $self = shift;
    my $message = $self->new_message( @_ );
+   $message->nlmsg_flags( ($message->nlmsg_flags||0) | NLM_F_REQUEST );
+   return $message;
+}
+
+=head2 $sock->new_command( %args )
+
+As C<new_request>, but may use a different class for messages. This is for
+such netlink protocols as C<TASKSTATS>, which uses a different set of message
+attributes for userland-to-kernel commands, as for kernel-to-userland event
+messages.
+
+=cut
+
+sub new_command
+{
+   my $self = shift;
+   my $message = $self->command_class->new( @_ );
    $message->nlmsg_flags( ($message->nlmsg_flags||0) | NLM_F_REQUEST );
    return $message;
 }
@@ -308,11 +331,21 @@ package IO::Socket::Netlink::_Message;
 
 use Carp;
 
-use Sub::Name qw( subname );
 use Socket::Netlink qw(
    :DEFAULT
    pack_nlmsghdr unpack_nlmsghdr pack_nlattrs unpack_nlattrs
 );
+
+# Don't hard-depend on Sub::Name since it's only a niceness for stack traces
+BEGIN {
+   if( eval { require Sub::Name } ) {
+      *subname = \&Sub::Name::subname;
+   }
+   else {
+      # Ignore the name, return the CODEref
+      *subname = sub { return $_[1] };
+   }
+}
 
 =head1 MESSAGE OBJECTS
 
@@ -375,7 +408,7 @@ sub unpack : method
    );
 }
 
-=over 8
+=over 4
 
 =item * $message->nlmsg_type
 
@@ -395,8 +428,8 @@ structure type.
 
 =back
 
-Many Netlink-based protocols standard message headers with attribute bodies.
-Messages may start with structure layouts containing standard fields,
+Many Netlink-based protocols use standard message headers with attribute
+bodies. Messages may start with structure layouts containing standard fields,
 optionally followed by a sequence of one or more attributes in a standard
 format. Each attribute is an ID number and a value.
 
@@ -440,7 +473,7 @@ Called by a subclass of the message class, this class method declares that
 messages of this particular type contain a message header. The four required
 fields of C<%args> define how this behaves:
 
-=over 8
+=over 4
 
 =item * data => STRING
 
@@ -459,6 +492,40 @@ Each field item should either be an ARRAY reference containing the following
 structure, or a plain scalar denoting simply its name
 
  [ $name, $type, %opts ]
+
+The C<$type> defines the default value of the attribute, and determines how
+it will be printed by the C<STRING> method:
+
+=over 4
+
+=item * decimal
+
+Default 0, printed with printf "%d"
+
+=item * hex
+
+Default 0, printed with printf "%x"
+
+=item * bytes
+
+Default "", printed with printf "%v02x"
+
+=item * string
+
+Default "", printed with printf "%s"
+
+=back
+
+The following options are recognised:
+
+=over 8
+
+=item default => SCALAR
+
+A value to set for the field when the message header is packed, if no other
+value has been provided.
+
+=back
 
 Fields defined simply by name are given the type of C<decimal> with a default
 value of 0, and no other options.
@@ -504,6 +571,7 @@ sub is_header
    $no_data or ref( my $unpackfunc = $args{unpack} ) eq "CODE" or croak "Expected 'unpack' as CODE ref";
 
    my @fieldnames;
+   my @formats;
 
    foreach my $f ( @$fields ) {
       my ( $name, $type, %opts ) = ref $f eq "ARRAY" ? @$f
@@ -511,17 +579,22 @@ sub is_header
       push @fieldnames, $name;
 
       my $default;
+      my $format;
       if( $type eq "decimal" ) {
          $default = 0;
+         $format = "%d";
       }
       elsif( $type eq "hex" ) {
          $default = 0;
+         $format = "%x";
       }
       elsif( $type eq "bytes" ) {
          $default = "";
+         $format = "%v02x";
       }
       elsif( $type eq "string" ) {
          $default = "";
+         $format = "%s";
       }
       else {
          croak "Unrecognised field type '$type'";
@@ -536,6 +609,8 @@ sub is_header
          $self->{$name} = shift if @_;
          defined $self->{$name} ? $self->{$name} : $default;
       } unless $opts{no_accessor};
+
+      push @formats, "$name=$format";
    }
 
    no strict 'refs';
@@ -548,6 +623,84 @@ sub is_header
 
       return $packfunc->( map { $self->${ \$fieldnames[$_] }() } 0 .. $#fieldnames );
    } unless $no_data;
+
+   # Debugging support
+   if( defined $datafield and !defined &{"${class}::${datafield}_string"} ) {
+      my $formatstring = join ",", @formats;
+      *{"${class}::${datafield}_string"} = subname "${datafield}_string" => sub {
+         my $self = shift;
+         sprintf "${datafield}={$formatstring}", map $self->$_, @fieldnames;
+      };
+   }
+}
+
+=head2 $messageclass->is_subclassed_by_type
+
+Called by a subclass of the message class, this class method declares that
+messages are further subclassed according to the value of their C<nlmsg_type>.
+This will override the C<nlmsg_type> accessor to re-C<bless> the object into
+its declared subclass according to the types declared to the generated
+C<register_nlmsg_type> method.
+
+For example
+
+ package IO::Socket::Netlink::SomeProto::_Message;
+ use base qw( IO::Socket::Netlink::_Message );
+
+ __PACKAGE__->is_subclassed_by_type;
+
+ package IO::Socket::Netlink::SomeProto::_InfoMessage;
+
+ __PACKAGE__->register_nlmsg_type( 123 );
+
+ ...
+
+At this point, if a message is constructed with this type number, either by
+code calling C<new_message>, or received from the socket, it will be
+automatically reblessed to the appropriate class.
+
+This feature is intended for use by netlink protocols where different message
+types have different stucture types.
+
+=cut
+
+sub is_subclassed_by_type
+{
+   my $class = shift;
+
+   my %type2pkg;
+
+   no strict 'refs';
+
+   *{"${class}::register_nlmsg_type"} = subname "register_nlmsg_type" => sub {
+      my $pkg = shift;
+      my ( $type ) = @_;
+
+      $type2pkg{$type} = $pkg;
+   };
+
+   # SUPER:: happens in the context of the current package. So we need some
+   # massive hackery to make this work
+   my $SUPER_nlmsg_type = eval "
+      package $class;
+      sub { shift->SUPER::nlmsg_type( \@_ ) }
+   ";
+
+   *{"${class}::nlmsg_type"} = subname "nlmsg_type" => sub {
+      my $self = shift;
+      my $nlmsg_type = $SUPER_nlmsg_type->( $self, @_ );
+
+      return $nlmsg_type unless @_;
+      return unless defined $nlmsg_type;
+
+      my $pkg = $type2pkg{$nlmsg_type} or return; # no known type
+      return if ref $self eq $pkg; # already right type
+
+      # Only rebless upwards or downwards, not sideways
+      if( ref $self eq $class or $pkg eq $class ) {
+         bless $self, $pkg;
+      }
+   };
 }
 
 =head2 $messageclass->has_nlattrs( $fieldname, %attrs )
@@ -605,7 +758,7 @@ sub has_nlattrs
 
 The following standard definitions exist for C<$datatype>:
 
-=over 8
+=over 4
 
 =cut
 
@@ -945,11 +1098,6 @@ __PACKAGE__->is_header(
    unpack => \&unpack_nlmsgerr,
 );
 
-# Keep perl happy; keep Britain tidy
-1;
-
-__END__
-
 =head1 SEE ALSO
 
 =over 4
@@ -963,3 +1111,7 @@ L<Socket::Netlink> - interface to Linux's C<PF_NETLINK> socket family
 =head1 AUTHOR
 
 Paul Evans <leonerd@leonerd.org.uk>
+
+=cut
+
+0x55AA;

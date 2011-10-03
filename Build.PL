@@ -40,7 +40,7 @@ EOF
 my $build = $cc->new_module_build(
    module_name => 'Socket::Netlink',
    requires => {
-      'Sub::Name' => 0,
+      'Exporter' => '5.57',
    },
    configure_requires => {
       'ExtUtils::CChecker' => '0.02',
@@ -48,7 +48,7 @@ my $build = $cc->new_module_build(
       'Module::Build::Compat' => 0,
    },
    build_requires => {
-      'ExtUtils::H2PM' => '0.03',
+      'ExtUtils::H2PM' => '0.07',
       'Module::Build' => 0,
       'Module::Build::Compat' => 0,
       'Test::HexString' => 0,

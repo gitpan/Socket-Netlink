@@ -4,7 +4,7 @@ author:
   - 'Paul Evans <leonerd@leonerd.org.uk>'
 build_requires:
   ExtUtils::CBuilder: 0
-  ExtUtils::H2PM: 0.03
+  ExtUtils::H2PM: 0.07
   Module::Build: 0
   Module::Build::Compat: 0
   Test::HexString: 0
@@ -13,7 +13,8 @@ configure_requires:
   ExtUtils::CChecker: 0.02
   Module::Build: 0
   Module::Build::Compat: 0
-generated_by: 'Module::Build version 0.3601'
+dynamic_config: 1
+generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.112150'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -22,18 +23,18 @@ name: Socket-Netlink
 provides:
   IO::Socket::Netlink:
     file: lib/IO/Socket/Netlink.pm
-    version: 0.03
+    version: 0.04
   IO::Socket::Netlink::Generic:
     file: lib/IO/Socket/Netlink/Generic.pm
-    version: 0.03
+    version: 0.04
   Socket::Netlink:
     file: lib/Socket/Netlink.pm
-    version: 0.03
+    version: 0.04
   Socket::Netlink::Generic:
     file: lib/Socket/Netlink/Generic.pm
-    version: 0.03
+    version: 0.04
 requires:
-  Sub::Name: 0
+  Exporter: 5.57
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.03
+version: 0.04
